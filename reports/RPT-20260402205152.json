@@ -1,0 +1,26 @@
+{
+  "report": {
+    "report_id": "RPT-20260402205152",
+    "generated_at": "2026-04-02T20:51:52.408531",
+    "summary": "No feasible attacks identified.",
+    "server_infrastructure": {
+      "hostname": "Pro_Magnus_M",
+      "os_type": "Windows",
+      "os_version": "10.0.26200",
+      "installed_software": 0,
+      "security_tools": 0,
+      "has_database": false,
+      "has_web_server": false
+    },
+    "scan_results": {
+      "open_ports": 3
+    },
+    "feasible_attacks": [],
+    "infeasible_attacks": [],
+    "attack_assessments": [],
+    "remediation_recommendations": [
+      "Configure host-based firewall (iptables/ufw)",
+      "Install firewall and intrusion detection system"
+    ]
+  }
+}

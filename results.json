@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-04-02T20:52:01.882482",
+  "target_ip": "192.168.129.31",
+  "open_ports": [
+    {
+      "port": 3306,
+      "protocol": "tcp",
+      "service": "mysql",
+      "version": "Ej\u0004Host 'Pro_Magnus_M' is not allowed to connect to this MySQL server"
+    },
+    {
+      "port": 445,
+      "protocol": "tcp",
+      "service": "microsoft-ds",
+      "version": null
+    },
+    {
+      "port": 139,
+      "protocol": "tcp",
+      "service": "netbios-ssn",
+      "version": null
+    },
+    {
+      "port": 135,
+      "protocol": "tcp",
+      "service": "msrpc",
+      "version": null
+    }
+  ],
+  "attack_vectors": [
+    {
+      "id": "AV-001",
+      "name": "SQL Injection",
+      "description": "Injection of SQL code through web forms or URL parameters",
+      "mitre_id": "T1190",
+      "mitre_tactic": "Initial Access",
+      "target_ports": [
+        80,
+        443,
+        8080,
+        8443
+      ],
+      "target_services": [
+        "http",
+        "https",
+        "mysql",
+        "postgresql"
+      ]
+    },
+    {
+      "id": "AV-006",
+      "name": "SMB Exploitation",
+      "description": "Exploitation of SMB vulnerabilities (EternalBlue, etc.)",
+      "mitre_id": "T1210",
+      "mitre_tactic": "Lateral Movement",
+      "target_ports": [
+        445,
+        139
+      ],
+      "target_services": [
+        "microsoft-ds",
+        "netbios-ssn"
+      ]
+    }
+  ]
+}
