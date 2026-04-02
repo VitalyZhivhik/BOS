@@ -19,6 +19,7 @@ click>=8.1.0
 # GUI
 customtkinter>=5.2.0
 pillow>=10.0.0
+PyQt6>=6.0.0
 
 # Build EXE
 pyinstaller>=6.0.0
