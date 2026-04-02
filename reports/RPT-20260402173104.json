@@ -1,0 +1,26 @@
+{
+  "report": {
+    "report_id": "RPT-20260402173104",
+    "generated_at": "2026-04-02T17:31:04.839929",
+    "summary": "No feasible attacks identified.",
+    "server_infrastructure": {
+      "hostname": "c-69cea630-014dd6ef-9e7c71fc38eb",
+      "os_type": "Linux",
+      "os_version": "#1 SMP Tue Sep 26 10:25:51 UTC 2023",
+      "installed_software": 458,
+      "security_tools": 0,
+      "has_database": true,
+      "has_web_server": false
+    },
+    "scan_results": {
+      "open_ports": 3
+    },
+    "feasible_attacks": [],
+    "infeasible_attacks": [],
+    "attack_assessments": [],
+    "remediation_recommendations": [
+      "Configure host-based firewall (iptables/ufw)",
+      "Install firewall and intrusion detection system"
+    ]
+  }
+}
