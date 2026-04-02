@@ -15,7 +15,7 @@ from datetime import datetime
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from shared.models import ServerInfo, Vulnerability, AttackVector, SecurityReport
+from shared.models import ServerInfrastructure, Vulnerability, AttackVector, SecurityReport
 from server.analyzer.server_analyzer import ServerAnalyzer
 from server.correlation.engine import CorrelationEngine
 from server.reporting.report_generator import ReportGenerator
@@ -309,7 +309,7 @@ class ServerGUI(ctk.CTk):
             )
         ]
         
-    def _display_server_info(self, server_info: ServerInfo):
+    def _display_server_info(self, server_info: ServerInfrastructure):
         """Display server information in the tab"""
         self.server_info_text.delete("1.0", "end")
         
