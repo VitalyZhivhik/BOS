@@ -1,18 +1,2 @@
-```
-# Compiled Python files
-*.pyc
-__pycache__/
-
-# Dependencies
-venv/
-.venv/
-.env
-.env.local
-
-# Logs
-*.log
-
-# Editors
-.vscode/
-.idea/
-```
+# Examples 1:
+(empty — output nothing)
