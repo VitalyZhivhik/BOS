@@ -1,12 +1,12 @@
-```
 # Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-# Dependencies
+# Virtual environments
 venv/
+env/
 .venv/
 .env
 .env.local
@@ -30,4 +30,3 @@ Thumbs.db
 dist/
 build/
 target/
-```
