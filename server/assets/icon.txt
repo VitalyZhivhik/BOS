@@ -1,0 +1,11 @@
+"""
+Placeholder for server icon.
+Replace this file with a real .ico file for the executable.
+You can create an icon using:
+- Online converters (png to ico)
+- GIMP or Photoshop
+- Icon editing software
+
+Recommended size: 256x256 pixels
+Format: .ico (Windows) or .png (Linux/Mac)
+"""

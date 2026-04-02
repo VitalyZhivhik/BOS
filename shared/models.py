@@ -75,12 +75,35 @@ class AttackVector:
     id: str
     name: str
     description: str
+    port: int = 0
+    protocol: str = "TCP"
+    mitre_technique: Optional[str] = None
     mitre_technique_id: Optional[str] = None
     mitre_tactic: Optional[str] = None
+    capec_id: Optional[str] = None
     required_conditions: List[str] = field(default_factory=list)
     target_ports: List[int] = field(default_factory=list)
     target_services: List[str] = field(default_factory=list)
     associated_vulnerabilities: List[Vulnerability] = field(default_factory=list)
+    is_realizable: bool = True
+    realizability_reason: Optional[str] = None
+    risk_level: Optional[str] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'port': self.port,
+            'protocol': self.protocol,
+            'mitre_technique': self.mitre_technique or self.mitre_technique_id,
+            'mitre_tactic': self.mitre_tactic,
+            'capec_id': self.capec_id,
+            'is_realizable': self.is_realizable,
+            'realizability_reason': self.realizability_reason,
+            'risk_level': self.risk_level
+        }
 
 
 @dataclass
@@ -100,10 +123,12 @@ class ServerInfrastructure:
     hostname: str
     os_type: str
     os_version: str
-    installed_software: List[SoftwareInfo] = field(default_factory=list)
-    security_tools: List[SecurityTool] = field(default_factory=list)
-    open_ports: List[OpenPort] = field(default_factory=list)
-    running_services: List[str] = field(default_factory=list)
+    kernel_version: Optional[str] = None
+    architecture: Optional[str] = None
+    installed_software: List[Dict[str, Any]] = field(default_factory=list)
+    security_measures: Dict[str, Any] = field(default_factory=dict)
+    infrastructure: Dict[str, Any] = field(default_factory=dict)
+    open_ports: List[Dict[str, Any]] = field(default_factory=list)
     has_database: bool = False
     has_web_server: bool = False
     has_file_sharing: bool = False
@@ -115,10 +140,21 @@ class ScanResult:
     """Результат сканирования."""
     timestamp: datetime
     target_ip: str
-    open_ports: List[OpenPort] = field(default_factory=list)
+    open_ports: List[Dict[str, Any]] = field(default_factory=list)
     identified_services: List[Dict[str, Any]] = field(default_factory=list)
     potential_vulnerabilities: List[Vulnerability] = field(default_factory=list)
     attack_vectors: List[AttackVector] = field(default_factory=list)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return {
+            'timestamp': self.timestamp.isoformat(),
+            'target_ip': self.target_ip,
+            'open_ports': self.open_ports,
+            'identified_services': self.identified_services,
+            'potential_vulnerabilities': [v.__dict__ for v in self.potential_vulnerabilities],
+            'attack_vectors': [av.to_dict() for av in self.attack_vectors]
+        }
 
 
 @dataclass
@@ -133,3 +169,11 @@ class SecurityReport:
     infeasible_attacks: List[AttackAssessment] = field(default_factory=list)
     remediation_recommendations: List[str] = field(default_factory=list)
     summary: Optional[str] = None
+    total_vulnerabilities: int = 0
+    critical_count: int = 0
+    high_count: int = 0
+    medium_count: int = 0
+    low_count: int = 0
+    realizable_attacks: int = 0
+    non_realizable_attacks: int = 0
+    recommendations: List[Dict[str, Any]] = field(default_factory=list)
