@@ -31,7 +31,7 @@ from client.scanner.port_scanner import PortScanner
 
 class ScanWorker(QThread):
     """Рабочий поток для сканирования портов"""
-    progress = pyqtSignal(int, int, int, int, int)  # scanned, open, filtered, closed
+    progress = pyqtSignal(int, int, int, int)  # scanned, open, filtered, closed
     finished = pyqtSignal(object)  # ScanResult
     error = pyqtSignal(str)
     log_message = pyqtSignal(str)
@@ -393,6 +393,23 @@ class ClientGUI(QMainWindow):
                 border: 1px solid #555555;
                 padding: 6px;
                 border-radius: 3px;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid white;
+                margin-right: 5px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #2d2d2d;
+                color: white;
+                border: 1px solid #555555;
+                selection-background-color: #4CAF50;
             }
             QProgressBar {
                 border: 1px solid #555555;
@@ -917,78 +934,84 @@ class ClientGUI(QMainWindow):
                 QMessageBox.critical(self, "Ошибка", f"Не удалось экспортировать результаты: {e}")
     
     def _send_to_server(self):
-        if not self.current_attack_vectors:
-            QMessageBox.warning(self, "Предупреждение", "Нет векторов атак для отправки.")
+        """Отправка результатов сканирования на сервер через API."""
+        if not self.current_results or not self.current_results.open_ports:
+            QMessageBox.warning(self, "Предупреждение", "Нет результатов сканирования для отправки.")
             return
         
-        filename, _ = QFileDialog.getSaveFileName(
-            self,
-            "Сохранить векторы атак для сервера",
-            f"attack_vectors_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-            "JSON файлы (*.json)"
-        )
+        # URL сервера (можно вынести в настройки)
+        server_url = "http://localhost:8000/api/scan-results"
         
-        if filename:
-            try:
+        self._log_message(f"Отправка результатов на сервер: {server_url}")
+        
+        try:
+            import requests
+            
+            # Подготовка данных для отправки
+            data = {
+                "timestamp": datetime.now().isoformat(),
+                "target_ip": self.current_results.target_ip,
+                "open_ports": self.current_results.open_ports,
+                "attack_vectors": [av.to_dict() for av in self.current_results.attack_vectors]
+            }
+            
+            # Отправка POST запроса на сервер
+            response = requests.post(server_url, json=data, timeout=10)
+            
+            if response.status_code == 200:
+                result = response.json()
+                self._log_message(f"Результаты успешно отправлены на сервер. {result.get('message', '')}")
+                QMessageBox.information(
+                    self, "Успех",
+                    f"Результаты сканирования отправлены на сервер!\n\n"
+                    f"Портов отправлено: {result.get('ports_received', 0)}\n"
+                    f"Векторов атак: {result.get('vectors_received', 0)}\n\n"
+                    f"Сервер начал обработку уязвимостей через ScanOval."
+                )
+            else:
+                raise Exception(f"Сервер вернул ошибку: {response.status_code} - {response.text}")
+                
+        except ImportError:
+            # Если requests не установлен, сохраняем в файл
+            self._log_message("Модуль requests не найден, сохраняем в файл")
+            filename, _ = QFileDialog.getSaveFileName(
+                self,
+                "Сохранить результаты для сервера",
+                f"scan_result_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                "JSON файлы (*.json)"
+            )
+            
+            if filename:
                 data = {
                     "timestamp": datetime.now().isoformat(),
-                    "target": self.target_ip_input.text(),
-                    "attack_vectors": [av.to_dict() for av in self.current_attack_vectors]
+                    "target_ip": self.current_results.target_ip,
+                    "open_ports": self.current_results.open_ports,
+                    "attack_vectors": [av.to_dict() for av in self.current_results.attack_vectors]
                 }
                 
                 with open(filename, 'w', encoding='utf-8') as f:
                     json.dump(data, f, indent=2, ensure_ascii=False)
                 
-                self._log_message(f"Векторы атак сохранены: {filename}")
+                self._log_message(f"Результаты сохранены в файл: {filename}")
                 QMessageBox.information(
                     self, "Успех",
-                    f"Векторы атак сохранены:\n{filename}\n\n"
-                    f"Передайте этот файл администратору сервера."
+                    f"Результаты сохранены в файл:\n{filename}\n\n"
+                    f"Передайте этот файл администратору сервера или установите модуль requests\n"
+                    f"для автоматической отправки (pip install requests)"
                 )
-                
-            except Exception as e:
-                QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить векторы атак: {e}")
-    
-    def _show_manual(self):
-        dialog = UserManualDialog(self)
-        dialog.exec()
-    
-    def _show_about(self):
-        QMessageBox.about(
-            self,
-            "О программе BOS Client",
-            """<h2>BOS Client v1.0</h2>
-            <p>Сканер векторов атак для учебных целей</p>
-            <p><b>Возможности:</b></p>
-            <ul>
-                <li>Сканирование TCP/UDP портов</li>
-                <li>Определение служб и версий</li>
-                <li>Идентификация векторов атак</li>
-                <li>Интеграция с ScanOval</li>
-                <li>Экспорт результатов</li>
-            </ul>
-            <p><i>Используйте только в учебных целях!</i></p>
-            """
-        )
-    
-    def closeEvent(self, event):
-        if self.scan_worker and self.scan_worker.isRunning():
-            reply = QMessageBox.question(
-                self, "Подтверждение",
-                "Сканирование выполняется. Остановить и выйти?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        except requests.exceptions.ConnectionError:
+            self._log_message("Ошибка подключения к серверу. Проверьте, запущен ли сервер.")
+            QMessageBox.critical(
+                self, "Ошибка подключения",
+                "Не удалось подключиться к серверу.\n\n"
+                "Убедитесь, что сервер запущен командой:\n"
+                "python server/api_server.py\n\n"
+                "Или сохраните результаты в файл для ручной передачи."
             )
-            
-            if reply == QMessageBox.StandardButton.Yes:
-                self.scan_worker.stop()
-                self.scan_worker.wait()
-                event.accept()
-            else:
-                event.ignore()
-        else:
-            event.accept()
-
-
+        except Exception as e:
+            self._log_message(f"Ошибка при отправке на сервер: {e}")
+            QMessageBox.critical(self, "Ошибка", f"Не удалось отправить данные на сервер:\n{e}")
+    
 def main():
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
