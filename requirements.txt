@@ -30,3 +30,10 @@ pytest-cov>=4.0.0
 
 # Documentation
 sphinx>=6.0.0
+
+# Server API
+flask>=2.3.0
+flask-cors>=4.0.0
+
+# Logging enhancements
+colorlog>=6.7.0

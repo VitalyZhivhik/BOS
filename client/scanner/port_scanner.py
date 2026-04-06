@@ -158,3 +158,39 @@ class PortScanner:
 
         scan_result.attack_vectors = attack_vectors
         return attack_vectors
+
+
+def perform_scan(target: str, ports: str = None) -> ScanResult:
+    """
+    Выполнить сканирование цели и идентифицировать векторы атак.
+    
+    Args:
+        target: IP адрес или hostname цели.
+        ports: Опционально, список портов для сканирования (через запятую).
+        
+    Returns:
+        ScanResult с результатами сканирования.
+    """
+    scanner = PortScanner()
+    
+    # Определение диапазона портов
+    if ports:
+        port_list = [int(p.strip()) for p in ports.split(',')]
+        port_start = min(port_list)
+        port_end = max(port_list)
+    else:
+        port_start = 1
+        port_end = 1000
+    
+    # Сканирование портов
+    scan_result = scanner.scan(
+        target=target,
+        port_start=port_start,
+        port_end=port_end,
+        scan_type='tcp'
+    )
+    
+    # Идентификация векторов атак
+    scanner.identify_attack_vectors(scan_result)
+    
+    return scan_result
