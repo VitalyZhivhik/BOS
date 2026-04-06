@@ -10,6 +10,29 @@ from datetime import datetime
 class ReportGenerator:
     """Генератор отчётов о безопасности."""
 
+    def generate_all_reports(self, report: Any, output_dir: str) -> dict:
+        """Генерация всех форматов отчётов."""
+        import os
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        generated_files = {}
+        
+        # JSON report
+        json_file = os.path.join(output_dir, f"security_report_{timestamp}.json")
+        self.generate_json_report(report, json_file)
+        generated_files['json'] = json_file
+        
+        # HTML report
+        html_file = os.path.join(output_dir, f"security_report_{timestamp}.html")
+        self.generate_html_report(report, html_file)
+        generated_files['html'] = html_file
+        
+        # Text report
+        txt_file = os.path.join(output_dir, f"security_report_{timestamp}.txt")
+        self.generate_text_report(report, txt_file)
+        generated_files['text'] = txt_file
+        
+        return generated_files
+
     def generate_json_report(self, report: Any, filename: str):
         """Генерация JSON отчёта."""
         data = {
