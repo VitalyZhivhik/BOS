@@ -69,6 +69,129 @@ class ScanWorker(QThread):
         self.scanner.stop_scan()
 
 
+class NucleiWorker(QThread):
+    """Рабочий поток для сканирования уязвимостей через Nuclei"""
+    progress = pyqtSignal(str)  # сообщение о прогрессе
+    finished = pyqtSignal(object)  # список найденных уязвимостей
+    error = pyqtSignal(str)
+    log_message = pyqtSignal(str)
+
+    def __init__(self, target: str, templates: List[str] = None):
+        super().__init__()
+        self.target = target
+        self.templates = templates or []
+
+    def run(self):
+        try:
+            self.log_message.emit(f"Запуск Nuclei сканирования для {self.target}...")
+            self.progress.emit("Инициализация Nuclei...")
+            
+            vulnerabilities = self._run_nuclei_scan()
+            
+            self.log_message.emit(f"Nuclei сканирование завершено. Найдено {len(vulnerabilities)} уязвимостей.")
+            self.finished.emit(vulnerabilities)
+            
+        except Exception as e:
+            self.error.emit(str(e))
+
+    def _run_nuclei_scan(self) -> List[Dict[str, Any]]:
+        """Запуск сканирования Nuclei"""
+        import subprocess
+        import json
+        
+        vulnerabilities = []
+        
+        # Проверка наличия nuclei
+        try:
+            result = subprocess.run(
+                ["nuclei", "-version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode != 0:
+                raise FileNotFoundError("Nuclei не найден. Установите nuclei: https://github.com/projectdiscovery/nuclei")
+        except FileNotFoundError:
+            # Возвращаем mock-данные для демонстрации
+            self.progress.emit("Nuclei не найден, используем демонстрационные данные")
+            return self._get_mock_vulnerabilities()
+        
+        # Формирование команды
+        cmd = ["nuclei", "-target", self.target, "-json", "-silent"]
+        
+        if self.templates:
+            cmd.extend(["-t"] + self.templates)
+        else:
+            # Используем шаблоны по умолчанию для критических уязвимостей
+            cmd.extend(["-severity", "critical,high,medium"])
+        
+        self.progress.emit(f"Запуск: {' '.join(cmd)}")
+        
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=300
+            )
+            
+            if result.returncode == 0:
+                # Парсинг JSON вывода
+                for line in result.stdout.strip().split('\n'):
+                    if line:
+                        try:
+                            vuln_data = json.loads(line)
+                            vulnerabilities.append({
+                                "template_id": vuln_data.get("template-id", "unknown"),
+                                "name": vuln_data.get("info", {}).get("name", "Unknown"),
+                                "severity": vuln_data.get("info", {}).get("severity", "unknown"),
+                                "type": vuln_data.get("type", "unknown"),
+                                "host": vuln_data.get("host", self.target),
+                                "matched_at": vuln_data.get("matched-at", ""),
+                                "description": vuln_data.get("info", {}).get("description", ""),
+                                "tags": vuln_data.get("info", {}).get("tags", []),
+                                "curl_command": vuln_data.get("curl-command", "")
+                            })
+                        except json.JSONDecodeError:
+                            continue
+            else:
+                self.progress.emit(f"Nuclei вернул ошибку: {result.stderr}")
+                
+        except subprocess.TimeoutExpired:
+            self.progress.emit("Превышено время ожидания сканирования Nuclei")
+        except Exception as e:
+            self.progress.emit(f"Ошибка при выполнении Nuclei: {e}")
+        
+        return vulnerabilities
+
+    def _get_mock_vulnerabilities(self) -> List[Dict[str, Any]]:
+        """Возвращает демонстрационные данные об уязвимостях"""
+        return [
+            {
+                "template_id": "demo-xss",
+                "name": "Cross-Site Scripting (XSS)",
+                "severity": "high",
+                "type": "http",
+                "host": self.target,
+                "matched_at": f"http://{self.target}/search?q=test",
+                "description": "Demonstration XSS vulnerability found",
+                "tags": ["xss", "web", "demo"],
+                "curl_command": f"curl 'http://{self.target}/search?q=<script>alert(1)</script>'"
+            },
+            {
+                "template_id": "demo-exposed-panel",
+                "name": "Exposed Admin Panel",
+                "severity": "medium",
+                "type": "http",
+                "host": self.target,
+                "matched_at": f"http://{self.target}/admin",
+                "description": "Admin panel is publicly accessible",
+                "tags": ["exposure", "admin", "demo"],
+                "curl_command": f"curl 'http://{self.target}/admin'"
+            }
+        ]
+
+
 class UserManualDialog(QDialog):
     """Диалог руководства пользователя"""
     
@@ -106,8 +229,9 @@ class UserManualDialog(QDialog):
 • Сканирование TCP/UDP портов
 • Определение запущенных служб
 • Идентификация векторов атак по базе MITRE ATT&CK
+• Поиск уязвимостей с помощью Nuclei
 • Экспорт результатов в различные форматы
-• Интеграция с утилитой ScanOval"""
+• Отправка результатов на сервер для анализа через ScanOval"""
             ),
             self._create_section(
                 "2. Начало работы",
@@ -137,7 +261,7 @@ class UserManualDialog(QDialog):
    1. "Открытые порты" - список найденных открытых портов
    2. "Векторы атак" - выявленные векторы атак с описанием
    3. "Службы" - обнаруженные сетевые службы
-   4. "ScanOval" - интеграция с утилитой сканирования уязвимостей
+   4. "Nuclei" - поиск уязвимостей с помощью утилиты Nuclei
    5. "Руководство" - быстрая справка
 
 📝 Журнал активности:
@@ -339,6 +463,151 @@ class ScanOvalWidget(QWidget):
 Интеграция с реальной базой OVAL требует настройки API.
 """
         self.result_text.append(result)
+
+
+class NucleiWidget(QWidget):
+    """Виджет утилиты Nuclei для поиска векторов атак"""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.parent_window = parent
+        self._setup_ui()
+    
+    def _setup_ui(self):
+        layout = QVBoxLayout(self)
+        
+        # Заголовок
+        title = QLabel("☢️ Nuclei - Поиск векторов атак и уязвимостей")
+        title.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        layout.addWidget(title)
+        
+        # Описание
+        desc = QLabel("Утилита для автоматического поиска уязвимостей с использованием шаблонов Nuclei")
+        desc.setWordWrap(True)
+        layout.addWidget(desc)
+        
+        # Поле ввода цели
+        input_group = QGroupBox("Цель сканирования")
+        input_layout = QHBoxLayout(input_group)
+        
+        input_layout.addWidget(QLabel("Target:"))
+        self.target_input = QLineEdit()
+        self.target_input.setPlaceholderText("Например: 192.168.1.1 или http://example.com")
+        input_layout.addWidget(self.target_input)
+        
+        self.scan_btn = QPushButton("☢️ Запустить Nuclei")
+        self.scan_btn.clicked.connect(self._start_nuclei_scan)
+        input_layout.addWidget(self.scan_btn)
+        
+        layout.addWidget(input_group)
+        
+        # Опции сканирования
+        options_group = QGroupBox("Опции сканирования")
+        options_layout = QHBoxLayout(options_group)
+        
+        options_layout.addWidget(QLabel("Шаблоны:"))
+        self.template_combo = QComboBox()
+        self.template_combo.addItems(["Все (critical,high,medium)", "Только critical", "Только high", "XSS шаблоны", "CVE шаблоны"])
+        options_layout.addWidget(self.template_combo)
+        options_layout.addStretch()
+        
+        layout.addWidget(options_group)
+        
+        # Прогресс
+        self.progress_label = QLabel("")
+        self.progress_label.setWordWrap(True)
+        layout.addWidget(self.progress_label)
+        
+        # Результаты
+        self.result_text = QTextEdit()
+        self.result_text.setReadOnly(True)
+        self.result_text.setPlaceholderText("Здесь появятся результаты сканирования Nuclei...")
+        layout.addWidget(self.result_text)
+        
+        # Примеры
+        examples_group = QGroupBox("Примеры использования")
+        examples_layout = QVBoxLayout(examples_group)
+        
+        examples = [
+            "Сканирование веб-приложения: http://target.com",
+            "Поиск XSS уязвимостей: nuclei -t xss -u http://target.com",
+            "Поиск CVE уязвимостей: nuclei -t cve -u http://target.com",
+            "Критические уязвимости: nuclei -severity critical -u http://target.com"
+        ]
+        
+        for example in examples:
+            lbl = QLabel(f"• {example}")
+            lbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            examples_layout.addWidget(lbl)
+        
+        layout.addWidget(examples_group)
+    
+    def _start_nuclei_scan(self):
+        target = self.target_input.text().strip()
+        
+        if not target:
+            QMessageBox.warning(self, "Предупреждение", "Введите цель для сканирования")
+            return
+        
+        # Выбор шаблонов
+        template_selection = self.template_combo.currentText()
+        templates = []
+        
+        if "critical" in template_selection and "high" in template_selection:
+            templates = []  # По умолчанию
+        elif "Только critical" in template_selection:
+            templates = ["-severity", "critical"]
+        elif "Только high" in template_selection:
+            templates = ["-severity", "high"]
+        elif "XSS" in template_selection:
+            templates = ["-tags", "xss"]
+        elif "CVE" in template_selection:
+            templates = ["-tags", "cve"]
+        
+        # Запуск сканирования
+        self.result_text.clear()
+        self.result_text.append(f"☢️ Запуск Nuclei сканирования для: {target}\n")
+        self.progress_label.setText("Инициализация сканирования...")
+        
+        if self.parent_window:
+            self.parent_window._run_nuclei_from_widget(target, templates)
+    
+    def update_progress(self, message: str):
+        """Обновление прогресса сканирования"""
+        self.progress_label.setText(message)
+        self.result_text.append(f"[PROGRESS] {message}\n")
+    
+    def display_results(self, vulnerabilities: List[Dict[str, Any]]):
+        """Отображение результатов сканирования"""
+        self.result_text.append("\n" + "="*50 + "\n")
+        self.result_text.append(f"РЕЗУЛЬТАТЫ СКАНИРОВАНИЯ: Найдено {len(vulnerabilities)} уязвимостей\n")
+        self.result_text.append("="*50 + "\n\n")
+        
+        for i, vuln in enumerate(vulnerabilities, 1):
+            severity_color = {
+                "critical": "#ff0000",
+                "high": "#ff6600",
+                "medium": "#ffcc00",
+                "low": "#00cc00",
+                "info": "#0066cc"
+            }.get(vuln.get("severity", "info").lower(), "#ffffff")
+            
+            self.result_text.append(f"<b>[{i}] {vuln.get('name', 'Unknown')}</b><br>")
+            self.result_text.append(f"<span style='color:{severity_color}'><b>Severity:</b> {vuln.get('severity', 'unknown').upper()}</span><br>")
+            self.result_text.append(f"<b>Template:</b> {vuln.get('template_id', 'unknown')}<br>")
+            self.result_text.append(f"<b>Type:</b> {vuln.get('type', 'unknown')}<br>")
+            self.result_text.append(f"<b>Host:</b> {vuln.get('host', '')}<br>")
+            if vuln.get('matched_at'):
+                self.result_text.append(f"<b>Matched at:</b> {vuln.get('matched_at')}<br>")
+            if vuln.get('description'):
+                self.result_text.append(f"<b>Description:</b> {vuln.get('description')}<br>")
+            if vuln.get('tags'):
+                self.result_text.append(f"<b>Tags:</b> {', '.join(vuln.get('tags', []))}<br>")
+            if vuln.get('curl_command'):
+                self.result_text.append(f"<b>CURL:</b> <code>{vuln.get('curl_command')}</code><br>")
+            self.result_text.append("-"*50 + "\n")
+        
+        self.progress_label.setText(f"Сканирование завершено. Найдено {len(vulnerabilities)} уязвимостей.")
 
 
 class ClientGUI(QMainWindow):
@@ -637,9 +906,9 @@ class ClientGUI(QMainWindow):
         self._setup_services_tab()
         self.tabs.addTab(self.services_tab, "Службы")
         
-        # Вкладка ScanOval
-        self.scanoval_widget = ScanOvalWidget()
-        self.tabs.addTab(self.scanoval_widget, "ScanOval")
+        # Вкладка Nuclei - поиск векторов атак
+        self.nuclei_widget = NucleiWidget(parent=self)
+        self.tabs.addTab(self.nuclei_widget, "Nuclei")
         
         # Вкладка руководства
         self.manual_tab = QWidget()
@@ -947,7 +1216,8 @@ class ClientGUI(QMainWindow):
         try:
             import requests
             
-            # Подготовка данных для отправки
+            # Подготовка данных для отправки - только данные о портах и службах
+            # ScanOval анализ выполняется на стороне сервера
             data = {
                 "timestamp": datetime.now().isoformat(),
                 "target_ip": self.current_results.target_ip,
@@ -966,7 +1236,8 @@ class ClientGUI(QMainWindow):
                     f"Результаты сканирования отправлены на сервер!\n\n"
                     f"Портов отправлено: {result.get('ports_received', 0)}\n"
                     f"Векторов атак: {result.get('vectors_received', 0)}\n\n"
-                    f"Сервер начал обработку уязвимостей через ScanOval."
+                    f"Сервер выполняет анализ уязвимостей через ScanOval.\n"
+                    f"Результаты будут доступны в отчётах сервера."
                 )
             else:
                 raise Exception(f"Сервер вернул ошибку: {response.status_code} - {response.text}")
@@ -1023,7 +1294,8 @@ class ClientGUI(QMainWindow):
             "2. Укажите диапазон портов (по умолчанию 1-1024)\n"
             "3. Нажмите 'Начать сканирование'\n"
             "4. Результаты покажут открытые порты и возможные векторы атак\n"
-            "5. Используйте 'Экспорт результатов' для сохранения отчёта\n\n"
+            "5. Используйте вкладку 'Nuclei' для поиска уязвимостей\n"
+            "6. Используйте 'Экспорт результатов' для сохранения отчёта\n\n"
             "Горячие клавиши:\n"
             "F1 - Это руководство\n"
             "Ctrl+Q - Выход"
@@ -1036,8 +1308,25 @@ class ClientGUI(QMainWindow):
             "О программе",
             "BOS Client v1.0\n\n"
             "Сканер векторов атак для оценки безопасности сети.\n\n"
+            "Функции:\n"
+            "- Сканирование портов (TCP Connect)\n"
+            "- Поиск векторов атак с помощью Nuclei\n"
+            "- Экспорт результатов в JSON/HTML/TXT\n"
+            "- Отправка результатов на сервер для анализа через ScanOval\n\n"
             "© 2024 BOS Project"
         )
+    
+    def _run_nuclei_from_widget(self, target: str, templates: List[str]):
+        """Запуск сканирования Nuclei из виджета"""
+        self._log_message(f"Запуск Nuclei сканирования для {target}")
+        
+        # Создаем и запускаем worker
+        self.nuclei_worker = NucleiWorker(target=target, templates=templates)
+        self.nuclei_worker.progress.connect(self.nuclei_widget.update_progress)
+        self.nuclei_worker.finished.connect(self.nuclei_widget.display_results)
+        self.nuclei_worker.error.connect(lambda err: self._log_message(f"Nuclei ошибка: {err}"))
+        self.nuclei_worker.log_message.connect(self._log_message)
+        self.nuclei_worker.start()
 
 
 def main():
