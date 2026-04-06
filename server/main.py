@@ -71,7 +71,7 @@ def run_full_analysis(output_dir: str = "./reports") -> None:
     # Шаг 1: Анализ инфраструктуры сервера
     logger.info("Step 1: Analyzing server infrastructure")
     analyzer = ServerAnalyzer()
-    infrastructure = analyzer.analyze_infrastructure()
+    infrastructure = analyzer.analyze_server()
 
     print("\n" + "=" * 60)
     print("SERVER INFRASTRUCTURE ANALYSIS")
@@ -79,7 +79,7 @@ def run_full_analysis(output_dir: str = "./reports") -> None:
     print(f"Hostname: {infrastructure.hostname}")
     print(f"OS: {infrastructure.os_type} {infrastructure.os_version}")
     print(f"Installed Software: {len(infrastructure.installed_software)} packages")
-    print(f"Security Tools: {len(infrastructure.security_tools)} detected")
+    print(f"Security Measures: {len(infrastructure.security_measures)} detected")
     print(f"Has Database: {infrastructure.has_database}")
     print(f"Has Web Server: {infrastructure.has_web_server}")
 
@@ -114,21 +114,16 @@ def run_full_analysis(output_dir: str = "./reports") -> None:
     # Шаг 3: Корреляция и оценка атак
     logger.info("Step 3: Correlating and assessing attacks")
     engine = CorrelationEngine()
-    report = engine.correlate_and_assess(infrastructure, scan_result)
+    vulnerabilities = engine.correlate_vulnerabilities(infrastructure, scan_result.attack_vectors)
+    report = engine.generate_security_report(infrastructure, vulnerabilities, scan_result.attack_vectors)
 
     print("\n" + "=" * 60)
     print("ATTACK ASSESSMENT")
     print("=" * 60)
-    print(f"Summary: {report.summary}")
-    print(f"\nFeasible Attacks: {len(report.feasible_attacks)}")
-    for attack in report.feasible_attacks:
-        print(f"  ⚠️  [{attack.priority}] {attack.attack_vector.name}")
-        print(f"      Reason: {attack.reason}")
-
-    print(f"\nInfeasible Attacks: {len(report.infeasible_attacks)}")
-    for attack in report.infeasible_attacks:
-        print(f"  ✓ {attack.attack_vector.name}")
-        print(f"      Reason: {attack.reason}")
+    print(f"Total Vulnerabilities: {report.total_vulnerabilities}")
+    print(f"Critical: {report.critical_count}, High: {report.high_count}, Medium: {report.medium_count}, Low: {report.low_count}")
+    print(f"\nRealizable Attacks: {report.realizable_attacks}")
+    print(f"Non-realizable Attacks: {report.non_realizable_attacks}")
 
     # Шаг 4: Генерация отчётов
     logger.info("Step 4: Generating reports")
@@ -145,10 +140,10 @@ def run_full_analysis(output_dir: str = "./reports") -> None:
         print(f"  {format_type.upper()}: {filepath}")
 
     print("\n" + "=" * 60)
-    print("REMEDIATION RECOMMENDATIONS")
+    print("RECOMMENDATIONS")
     print("=" * 60)
-    for i, rec in enumerate(report.remediation_recommendations, 1):
-        print(f"{i}. {rec}")
+    for i, rec in enumerate(report.recommendations, 1):
+        print(f"{i}. {rec.get('title', 'Recommendation')} - Priority: {rec.get('priority', 'N/A')}")
 
     print("\n" + "=" * 60)
     print("ANALYSIS COMPLETE")

@@ -1,31 +1,13 @@
-# Python cache
+```
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-# Virtual environments
-venv/
-env/
-.venv/
-.env
-.env.local
+# Reports
+reports/
 
 # Logs
 *.log
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Editors
-.vscode/
-.idea/
-*.swp
-*.swo
-*.tmp
-
-# Build artifacts
-dist/
-build/
-target/
+```
