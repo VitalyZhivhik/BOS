@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Security Report - RPT-20260406142519</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; border-bottom: 3px solid #2196F3; padding-bottom: 10px; }
+        h2 { color: #555; margin-top: 30px; }
+        .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
+        .stat-card { background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; }
+        .stat-value { font-size: 2em; font-weight: bold; color: #2196F3; }
+        .stat-label { color: #666; margin-top: 5px; }
+        .critical { color: #f44336; }
+        .high { color: #ff9800; }
+        .medium { color: #ffc107; }
+        .low { color: #4caf50; }
+        .recommendation { background: #e3f2fd; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #2196F3; }
+        .priority-Critical { border-left-color: #f44336; }
+        .priority-High { border-left-color: #ff9800; }
+        .priority-Medium { border-left-color: #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Security Analysis Report</h1>
+        <p><strong>Report ID:</strong> RPT-20260406142519</p>
+        <p><strong>Generated:</strong> 2026-04-06 14:25:19</p>
+        
+        <h2>Summary</h2>
+        <div class="summary">
+            <div class="stat-card">
+                <div class="stat-value">0</div>
+                <div class="stat-label">Total Vulnerabilities</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value critical">0</div>
+                <div class="stat-label">Critical</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value high">0</div>
+                <div class="stat-label">High</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value medium">0</div>
+                <div class="stat-label">Medium</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value low">0</div>
+                <div class="stat-label">Low</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #4caf50;">0</div>
+                <div class="stat-label">Realizable Attacks</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #9e9e9e;">0</div>
+                <div class="stat-label">Non-Realizable Attacks</div>
+            </div>
+        </div>
+        
+        <h2>Recommendations</h2>
+
+        <div class="recommendation priority-Critical">
+            <h3>Enable Firewall</h3>
+            <p><strong>Priority:</strong> Critical</p>
+            <p>No active firewall detected</p>
+            <pre>1. Install ufw or firewalld
+2. Configure rules
+3. Enable service</pre>
+        </div>
+
+    </div>
+</body>
+</html>

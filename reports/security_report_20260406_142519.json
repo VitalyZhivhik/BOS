@@ -1,0 +1,22 @@
+{
+  "report_id": "RPT-20260406142519",
+  "generated_at": "2026-04-06T14:25:19.260728",
+  "summary": {
+    "total_vulnerabilities": 0,
+    "critical_count": 0,
+    "high_count": 0,
+    "medium_count": 0,
+    "low_count": 0,
+    "realizable_attacks": 0,
+    "non_realizable_attacks": 0
+  },
+  "recommendations": [
+    {
+      "title": "Enable Firewall",
+      "priority": "Critical",
+      "description": "No active firewall detected",
+      "implementation_steps": "1. Install ufw or firewalld\n2. Configure rules\n3. Enable service",
+      "related_cves": []
+    }
+  ]
+}
