@@ -29,12 +29,11 @@ from PyQt6.QtWidgets import (
     QStatusBar,
     QMenu,
     QMenuBar,
-    QAction,
     QSplitter,
     QFrame,
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
-from PyQt6.QtGui import QFont, QColor, QIcon
+from PyQt6.QtGui import QFont, QColor, QIcon, QAction
 
 from shared import (
     ServerInfrastructure,
