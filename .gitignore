@@ -1,13 +1,4 @@
 ```
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
 # Reports
 reports/
-
-# Logs
-*.log
 ```
