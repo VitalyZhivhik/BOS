@@ -288,8 +288,18 @@ def get_status():
 def process_vulnerabilities() -> Dict[str, Any]:
     """Process vulnerabilities using ScanOval."""
     try:
-        if not current_scan_result or not current_infrastructure:
-            return {'status': 'pending', 'message': 'Waiting for infrastructure data'}
+        # Сначала анализируем инфраструктуру сервера если данные ещё не получены
+        global current_infrastructure
+        
+        if not current_infrastructure:
+            logger.info("Analyzing server infrastructure for ScanOval processing")
+            from server import ServerAnalyzer
+            analyzer = ServerAnalyzer()
+            current_infrastructure = analyzer.analyze_server()
+            logger.info(f"Server infrastructure analyzed: {current_infrastructure.hostname}")
+        
+        if not current_scan_result:
+            return {'status': 'pending', 'message': 'Waiting for scan results'}
         
         oval = ScanOvalIntegration()
         vulns = oval.query_vulnerabilities(
@@ -297,6 +307,11 @@ def process_vulnerabilities() -> Dict[str, Any]:
             os_type=current_infrastructure.os_type,
             os_version=current_infrastructure.os_version
         )
+        
+        # Добавляем найденные уязвимости в результат сканирования
+        current_scan_result.potential_vulnerabilities.extend(vulns)
+        
+        logger.info(f"ScanOval found {len(vulns)} vulnerabilities")
         
         return {
             'status': 'complete',
